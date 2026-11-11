@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Menu, 
   Plus, 
@@ -21,6 +21,8 @@ import { RecordDetailModal } from './components/RecordDetailModal';
 import { EditDeadlinesModal } from './components/EditDeadlinesModal';
 import { DriveConnectionModal } from './components/DriveConnectionModal';
 import { PWAInstallBanner } from './components/PWAInstallBanner';
+import { getAccessToken } from './services/googleAuth';
+import { syncBothWays, mergeModels, loadTombstones, markModelDeleted, markRecordDeleted } from './services/driveSync';
 
 export default function App() {
   const [models, setModels] = useState<VehicleModel[]>(loadStoredModels);
@@ -60,11 +62,44 @@ export default function App() {
     saveDriveConfig(driveConfig);
   }, [driveConfig]);
 
+  // Applica i dati risultanti dalla sincronizzazione senza perdere modifiche fatte nel frattempo
+  const lastSyncedRef = useRef<string>('');
+  const applyMerged = (mergedModels: VehicleModel[]) => {
+    lastSyncedRef.current = JSON.stringify(mergedModels);
+    setModels((prev) => {
+      const next = mergeModels(prev, mergedModels, loadTombstones());
+      return JSON.stringify(next) === JSON.stringify(prev) ? prev : next;
+    });
+  };
+
+  // Dopo la prima sincronizzazione della sessione, ogni modifica viene inviata a Drive in automatico
+  useEffect(() => {
+    if (!driveConfig.isConnected) return;
+    if (JSON.stringify(models) === lastSyncedRef.current) return;
+    const timer = setTimeout(async () => {
+      try {
+        const token = await getAccessToken();
+        if (!token) return; // serve la sincronizzazione manuale per ottenere l'accesso
+        const result = await syncBothWays(token, models);
+        applyMerged(result.models);
+        setDriveConfig((c) => ({
+          ...c,
+          lastSyncedAt: new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }),
+        }));
+      } catch (e) {
+        console.warn('Sincronizzazione automatica non riuscita (usa "Sincronizza Ora"):', e);
+      }
+    }, 4000);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [models, driveConfig.isConnected]);
+
   // Current active model
   const activeModel = models.find((m) => m.id === selectedModelId) || models[0] || null;
 
   // Add / Edit Model Handler
-  const handleSaveModel = (savedModel: VehicleModel) => {
+  const handleSaveModel = (rawModel: VehicleModel) => {
+    const savedModel: VehicleModel = { ...rawModel, updatedAt: new Date().toISOString() };
     setModels((prev) => {
       const existsIndex = prev.findIndex((m) => m.id === savedModel.id);
       if (existsIndex >= 0) {
@@ -80,6 +115,7 @@ export default function App() {
 
   // Delete Model Handler
   const handleDeleteModel = (modelId: string) => {
+    markModelDeleted(modelId);
     setModels((prev) => {
       const remaining = prev.filter((m) => m.id !== modelId);
       if (selectedModelId === modelId) {
@@ -97,6 +133,7 @@ export default function App() {
         return {
           ...m,
           deadlines,
+          updatedAt: new Date().toISOString(),
         };
       })
     );
@@ -135,6 +172,7 @@ export default function App() {
   // Delete Record Handler
   const handleDeleteRecord = (recordId: string) => {
     if (!activeModel) return;
+    markRecordDeleted(recordId);
 
     setModels((prev) => {
       return prev.map((m) => {
@@ -351,6 +389,7 @@ export default function App() {
         config={driveConfig}
         onUpdateConfig={(cfg) => setDriveConfig(cfg)}
         models={models}
+        onMerged={applyMerged}
       />
     </div>
   );
