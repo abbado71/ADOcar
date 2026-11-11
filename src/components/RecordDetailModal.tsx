@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { MaintenanceRecord } from '../types';
 import { formatDisplayDate } from '../utils/excelExporter';
+import { NextInterventionLabel } from './NextInterventionLabel';
 
 interface RecordDetailModalProps {
   isOpen: boolean;
@@ -120,9 +121,11 @@ export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({
                 <span className="text-[10px] font-bold uppercase tracking-wider text-amber-300 block">
                   Prossimo Intervento Programmato
                 </span>
-                <span className="text-xs font-semibold text-white">
-                  {formatDisplayDate(record.prossimoIntervento)}
-                </span>
+                <NextInterventionLabel
+                  value={record.prossimoIntervento}
+                  className="text-xs font-semibold text-white"
+                  iconClassName="h-3.5 w-3.5"
+                />
               </div>
             </div>
           )}

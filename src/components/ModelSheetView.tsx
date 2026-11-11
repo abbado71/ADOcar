@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { VehicleModel, MaintenanceRecord } from '../types';
 import { formatDisplayDate } from '../utils/excelExporter';
+import { NextInterventionLabel } from './NextInterventionLabel';
 
 interface ModelSheetViewProps {
   model: VehicleModel;
@@ -252,10 +253,11 @@ export const ModelSheetView: React.FC<ModelSheetViewProps> = ({
 
                           {/* Prossimo intervento (se presente) */}
                           {rec.prossimoIntervento && (
-                            <span className="flex items-center gap-1 text-[11px] text-amber-300 font-mono">
-                              <Clock className="h-3 w-3 text-amber-400" />
-                              Prossimo: {formatDisplayDate(rec.prossimoIntervento)}
-                            </span>
+                            <NextInterventionLabel
+                              value={rec.prossimoIntervento}
+                              withPrefix
+                              className="text-[11px] text-amber-300 font-mono"
+                            />
                           )}
                         </div>
                       </div>
