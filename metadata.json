@@ -1,0 +1,7 @@
+{
+  "name": "DriveSheets PWA",
+  "description": "Progressive Web App per raccogliere e sincronizzare dati direttamente su fogli Google all'interno del tuo Google Drive.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
