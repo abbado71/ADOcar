@@ -37,6 +37,7 @@ export const DriveConnectionModal: React.FC<DriveConnectionModalProps> = ({
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<DriveSyncResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [importedCount, setImportedCount] = useState(0);
 
   if (!isOpen) return null;
 
@@ -75,6 +76,7 @@ export const DriveConnectionModal: React.FC<DriveConnectionModalProps> = ({
         }
       }
       onMerged(result.models);
+      setImportedCount(result.importedFromSheet);
       setSyncResult(result);
 
       onUpdateConfig({
@@ -256,7 +258,7 @@ export const DriveConnectionModal: React.FC<DriveConnectionModalProps> = ({
                 <div className="flex items-start gap-2.5 text-xs text-emerald-300 bg-emerald-950/40 p-3 rounded-xl border border-emerald-800 animate-in fade-in">
                   <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400 mt-0.5" />
                   <div className="leading-relaxed">
-                    Sincronizzazione completata: i dati di questo dispositivo e quelli su Drive sono stati uniti e aggiornati in entrambe le direzioni.
+                    Sincronizzazione completata: i dati di questo dispositivo e quelli su Drive sono stati uniti e aggiornati in entrambe le direzioni.{importedCount > 0 && (<> Importati dal foglio <strong>{importedCount}</strong> {importedCount === 1 ? 'nuovo intervento' : 'nuovi interventi'}.</>)}
                   </div>
                 </div>
               )}
