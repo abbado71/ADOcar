@@ -1,6 +1,6 @@
 // Service worker minimale per ADOcar: abilita installazione e uso offline della "shell" dell'app.
 // Le chiamate a Google (Drive, Fogli, login) NON vengono toccate: passano sempre dalla rete.
-const CACHE = 'adocar-v2';
+const CACHE = 'adocar-v3';
 const SCOPE = self.registration.scope; // es. https://abbado71.github.io/ADOcar/
 
 self.addEventListener('install', (event) => {
@@ -26,7 +26,7 @@ self.addEventListener('fetch', (event) => {
   // Pagine: prima la rete (così ricevi gli aggiornamenti), cache se offline
   if (req.mode === 'navigate') {
     event.respondWith(
-      fetch(req)
+      fetch(req, { cache: 'no-store' }) // ignora la cache HTTP di Safari/GitHub: la pagina è sempre aggiornata
         .then((res) => {
           const copy = res.clone();
           caches.open(CACHE).then((c) => c.put(SCOPE, copy));
