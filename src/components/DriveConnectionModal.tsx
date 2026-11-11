@@ -13,8 +13,9 @@ import {
   Check
 } from 'lucide-react';
 import { DriveFolderConfig, VehicleModel } from '../types';
-import { googleSignIn, getAccessToken, logoutGoogle } from '../services/googleAuth';
-import { syncFleetToGoogle, DriveSyncResult } from '../services/driveSheetsService';
+import { googleSignIn, getAccessToken, setCachedAccessToken, logoutGoogle } from '../services/googleAuth';
+import { DriveSyncResult } from '../services/driveSheetsService';
+import { syncBothWays } from '../services/driveSync';
 
 interface DriveConnectionModalProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ interface DriveConnectionModalProps {
   config: DriveFolderConfig;
   onUpdateConfig: (newConfig: DriveFolderConfig) => void;
   models: VehicleModel[];
+  onMerged: (mergedModels: VehicleModel[]) => void;
 }
 
 export const DriveConnectionModal: React.FC<DriveConnectionModalProps> = ({
@@ -30,6 +32,7 @@ export const DriveConnectionModal: React.FC<DriveConnectionModalProps> = ({
   config,
   onUpdateConfig,
   models,
+  onMerged,
 }) => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<DriveSyncResult | null>(null);
@@ -54,8 +57,24 @@ export const DriveConnectionModal: React.FC<DriveConnectionModalProps> = ({
         userEmail = authResult.user.email || 'ado.domenico@gmail.com';
       }
 
-      // Perform real sync: Create "ADocar" folder and "ADOcar_manutenzione_Auto_Moto" spreadsheet
-      const result = await syncFleetToGoogle(token, models);
+      // Sincronizzazione nei due sensi: scarica da Drive, unisce con i dati locali, rimanda su Drive
+      let result;
+      try {
+        result = await syncBothWays(token, models);
+      } catch (firstErr: any) {
+        // Token scaduto (dura circa 1 ora): chiede un nuovo accesso e riprova una volta
+        if (/401|UNAUTHENTICATED|Invalid Credentials/i.test(firstErr?.message || '')) {
+          setCachedAccessToken(null);
+          const authResult = await googleSignIn();
+          if (!authResult) throw new Error('Accesso Google annullato.');
+          token = authResult.accessToken;
+          userEmail = authResult.user.email || userEmail;
+          result = await syncBothWays(token, models);
+        } else {
+          throw firstErr;
+        }
+      }
+      onMerged(result.models);
       setSyncResult(result);
 
       onUpdateConfig({
@@ -237,7 +256,7 @@ export const DriveConnectionModal: React.FC<DriveConnectionModalProps> = ({
                 <div className="flex items-start gap-2.5 text-xs text-emerald-300 bg-emerald-950/40 p-3 rounded-xl border border-emerald-800 animate-in fade-in">
                   <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400 mt-0.5" />
                   <div className="leading-relaxed">
-                    Cartella <strong>ADocar</strong> e foglio sincronizzati con successo sul tuo Google Drive! Ciascun mezzo ha la propria scheda dedicata.
+                    Sincronizzazione completata: i dati di questo dispositivo e quelli su Drive sono stati uniti e aggiornati in entrambe le direzioni.
                   </div>
                 </div>
               )}
@@ -251,7 +270,7 @@ export const DriveConnectionModal: React.FC<DriveConnectionModalProps> = ({
                   className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-600/20 active:scale-98 transition disabled:opacity-50"
                 >
                   <RefreshCw className={`h-3.5 w-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-                  <span>{isSyncing ? 'Sincronizzazione in corso...' : 'Sincronizza Ora su Drive'}</span>
+                  <span>{isSyncing ? 'Sincronizzazione in corso...' : 'Sincronizza Ora (scarica e invia)'}</span>
                 </button>
 
                 <button
