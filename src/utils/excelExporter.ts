@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
 import { VehicleModel, MaintenanceRecord, FixedDeadlines } from '../types';
+import { formatNextIntervention, normalizeNextInterventionCell } from './nextIntervention';
 
 export function sanitizeSheetName(name: string): string {
   const sanitized = name.replace(/[\\/?*\[\]:]/g, '_').trim();
@@ -104,7 +105,7 @@ export function buildVehicleWorksheet(model: VehicleModel): XLSX.WorkSheet {
       rec.costo !== undefined && rec.costo !== null ? Number(rec.costo) : 0,
       formatDisplayDate(rec.data),
       rec.km !== undefined && rec.km !== null ? Number(rec.km) : '',
-      formatDisplayDate(rec.prossimoIntervento),
+      formatNextIntervention(rec.prossimoIntervento),
     ]);
   });
 
@@ -239,7 +240,7 @@ export async function parseExcelFile(file: File): Promise<VehicleModel[]> {
           costo: parseFloat(r[3]) || 0,
           data: parseDateToISO(r[4]),
           km: typeof r[5] === 'number' ? r[5] : parseInt(String(r[5] || '').replace(/\D/g, ''), 10) || 0,
-          prossimoIntervento: parseDateToISO(r[6]),
+          prossimoIntervento: normalizeNextInterventionCell(r[6]),
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         });
