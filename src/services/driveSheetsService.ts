@@ -247,7 +247,17 @@ export async function syncFleetToGoogle(
     // Write values to tab
     const safeTabName = tabName.replace(/'/g, "''");
     const range = `'${safeTabName}'!A1:G${values.length}`;
-    await fetch(
+
+    // Svuota la scheda prima di riscriverla: se hai eliminato interventi, non restano righe vecchie
+    const clearRes = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(`'${safeTabName}'!A1:G2000`)}:clear`,
+      { method: 'POST', headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, body: '{}' }
+    );
+    if (!clearRes.ok) {
+      throw new Error(`Impossibile aggiornare la scheda "${tabName}" del foglio: ${await clearRes.text()}`);
+    }
+
+    const putRes = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
       {
         method: 'PUT',
@@ -262,6 +272,9 @@ export async function syncFleetToGoogle(
         }),
       }
     );
+    if (!putRes.ok) {
+      throw new Error(`Impossibile scrivere la scheda "${tabName}" del foglio: ${await putRes.text()}`);
+    }
   }
 
   return {
