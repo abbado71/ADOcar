@@ -1,6 +1,7 @@
 import { VehicleModel, MaintenanceRecord } from '../types';
 import { findOrCreateADocarFolder, findOrCreateSpreadsheet, syncFleetToGoogle, DriveSyncResult } from './driveSheetsService';
 import { parseDateToISO } from '../utils/excelExporter';
+import { normalizeNextInterventionCell } from '../utils/nextIntervention';
 
 /**
  * Sincronizzazione nei DUE sensi tra i dispositivi.
@@ -218,7 +219,7 @@ export function importRowsIntoModels(
         costo,
         data,
         km,
-        prossimoIntervento: parseDateToISO(row[6]),
+        prossimoIntervento: normalizeNextInterventionCell(row[6]),
         createdAt: now,
         updatedAt: now,
       });

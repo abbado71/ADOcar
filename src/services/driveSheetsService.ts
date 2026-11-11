@@ -1,5 +1,6 @@
 import { VehicleModel } from '../types';
 import { formatDisplayDate } from '../utils/excelExporter';
+import { formatNextIntervention } from '../utils/nextIntervention';
 
 export interface DriveSyncResult {
   success: boolean;
@@ -240,7 +241,7 @@ export async function syncFleetToGoogle(
         rec.costo !== undefined && rec.costo !== null ? Number(rec.costo) : 0,
         formatDisplayDate(rec.data),
         rec.km !== undefined && rec.km !== null ? Number(rec.km) : '',
-        formatDisplayDate(rec.prossimoIntervento),
+        formatNextIntervention(rec.prossimoIntervento),
       ]);
     });
 
