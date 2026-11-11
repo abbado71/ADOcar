@@ -36,6 +36,7 @@ export interface VehicleModel {
   records: MaintenanceRecord[];
   notes?: string;
   createdAt: string;
+  updatedAt?: string; // ultima modifica del mezzo (usata per la sincronizzazione tra dispositivi)
 }
 
 export interface DriveFolderConfig {
